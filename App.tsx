@@ -126,15 +126,20 @@ export default function App() {
     try {
       setStatus(AppStatus.EXTENDING);
       
+      // Get the image from the last chapter to use as a visual reference for character/scene consistency
+      const lastPart = storyParts[storyParts.length - 1];
+      const referenceImage = lastPart.imageUrl || initialImage;
+      
       const fullText = storyParts.map(p => p.text).join("\n\n");
       const { nextPart, visualPrompt } = await extendStory(initialImage, fullText, selectedTone);
       
       const styleObj = VISUAL_STYLES.find(s => s.id === selectedStyle);
       const styleInstruction = styleObj?.prompt || VISUAL_STYLES[0].prompt;
       
-      const newImageUrl = await generateStoryImage(initialImage, visualPrompt, styleInstruction);
+      // Use the last chapter's image as the structural and character design reference
+      const newImageUrl = await generateStoryImage(referenceImage, visualPrompt, styleInstruction);
       
-      setStoryParts(prev => [...prev, { text: nextPart, imageUrl: newImageUrl || initialImage }]);
+      setStoryParts(prev => [...prev, { text: nextPart, imageUrl: newImageUrl || referenceImage }]);
       setStatus(AppStatus.READY);
     } catch (err: any) {
       if (err?.message?.includes("Requested entity was not found.")) {

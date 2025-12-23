@@ -11,14 +11,16 @@ export const analyseImageAndWriteStory = async (base64Image: string, tone: strin
   const prompt = `Analyse this image in detail. Then:
   1. Generate a compelling, atmospheric title for the story (max 5 words).
   2. Ghostwrite a compelling, evocative opening paragraph (approx 60-80 words) for a story set in this world.
-  3. Provide a "visualPrompt": This MUST be a concise description of the scene exactly as it is depicted in the story paragraph you just wrote. Use the uploaded image as a structural reference for setting and characters, but if your story adds elements (like magic effects, specific objects, or weather), include them in this description.
+  3. Provide a "visualPrompt": This must be a detailed description for a graphic novel artist.
+     CRITICAL CHARACTER CONSISTENCY: You MUST define the physical appearance of the main protagonist(s) found in the image with extreme precision (e.g., "A tall woman with sharp cheekbones, wearing a midnight-blue velvet cloak with gold embroidery, her silver-streaked hair tied in a loose bun"). 
+     Describe the setting's mood, lighting, and key environmental features.
   
   IMPORTANT: The story MUST be written in a ${tone.toUpperCase()} tone. ${hintSection}
   
-  All text MUST be written in British English (UK spelling), for example using 'colour' instead of 'color', 'grey' instead of 'gray', and 'analysed' instead of 'analyzed'.
+  All text MUST be written in British English (UK spelling).
   
   Return the response in a clear JSON format with keys: "story", "title", and "visualPrompt". 
-  The story should be immersive, literary, and perfectly reflect the requested ${tone} style.`;
+  The "visualPrompt" will serve as the master visual reference for all subsequent chapters.`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
@@ -49,17 +51,20 @@ export const extendStory = async (base64Image: string, fullStory: string, tone: 
   const ai = getAI();
   const imageData = base64Image.split(',')[1];
 
-  const prompt = `Continue the following story based on the attached image. Maintain the ${tone.toUpperCase()} tone. 
-  Write a single, evocative paragraph (approx 40-50 words) that advances the plot or deepens the atmosphere.
+  const prompt = `Continue the following story based on the attached reference image. Maintain the ${tone.toUpperCase()} tone. 
+  Write a single, evocative paragraph (approx 50-70 words) that significantly advances the plot and moves the characters to a NEW specific action or location.
   
   All text MUST be written in British English (UK spelling).
   
-  Also provide a "visualPrompt": a short description of a new scene based on this new paragraph.
+  Provide a "visualPrompt": This is the artistic description for a COMPLETELY NEW frame in the graphic novel.
+  CRITICAL NARRATIVE CHANGE: This prompt MUST describe a new pose, a new specific action, and any changes in the background or environment as the story progresses.
+  STRICT CHARACTER CONSISTENCY: Carry over the exact visual traits (hair, face, clothing) of the protagonist from the reference image. 
+  The character should be the same, but doing something different in a new part of the scene or a new location entirely.
   
-  Current Story:
+  Current Story Context:
   "${fullStory}"
   
-  Return the response in JSON format with "nextPart" and "visualPrompt" keys. Ensure the JSON is valid.`;
+  Return the response in JSON format with "nextPart" and "visualPrompt" keys.`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
@@ -85,13 +90,13 @@ export const extendStory = async (base64Image: string, fullStory: string, tone: 
   return JSON.parse(response.text || '{}');
 };
 
-export const generateStoryImage = async (originalImageBase64: string, visualPrompt: string, styleInstruction: string) => {
+export const generateStoryImage = async (referenceImageBase64: string, visualPrompt: string, styleInstruction: string) => {
   const ai = getAI();
-  const imageData = originalImageBase64.split(',')[1];
+  const imageData = referenceImageBase64.split(',')[1];
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: 'gemini-3-pro-image-preview',
       contents: [{
         parts: [
           {
@@ -101,17 +106,24 @@ export const generateStoryImage = async (originalImageBase64: string, visualProm
             },
           },
           {
-            text: `ARTISTIC STYLE MANDATE: ${styleInstruction}
+            text: `ARTISTIC STYLE: ${styleInstruction}
 
-SUBJECT MATTER: ${visualPrompt}
+SUBJECT MATTER FOR NEW SCENE: ${visualPrompt}
 
-INSTRUCTIONS: Use the attached image ONLY for spatial composition and structural reference. 
-COMPLETELY IGNORE the original artistic style, lighting, and colour palette of the attached image. 
-STRICTLY APPLY the requested style "${styleInstruction}" to the entire scene. 
-The final image MUST depict the "SUBJECT MATTER" exactly as described, maintaining the basic layout of the attached reference.`,
+INSTRUCTIONS FOR NARRATIVE CONTINUITY:
+1. IDENTITY ANCHOR: The character from the attached REFERENCE IMAGE is your protagonist. You MUST reproduce their exact facial features, hair, and outfit in the NEW image.
+2. NEW ACTION/SCENE: You are NOT just editing the previous image. You are creating a NEW frame in a graphic novel. The character must be performing the NEW action described in the SUBJECT MATTER in the NEW environment.
+3. VISUAL STYLE ADHERENCE: Strictly maintain the "${styleInstruction}" aesthetic.
+4. CONSISTENCY: While the scene is new, the visual "DNA" (lighting quality, colour palette, and character design) must be identical to the reference image.`,
           },
         ],
-      }]
+      }],
+      config: {
+        imageConfig: {
+          aspectRatio: "16:9",
+          imageSize: "1K"
+        }
+      }
     });
 
     for (const part of response.candidates?.[0]?.content?.parts || []) {

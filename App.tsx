@@ -5,18 +5,20 @@ import { decode, decodeAudioData } from './utils/audioUtils';
 import { jsPDF } from 'jspdf';
 
 const TONES = [
-  { id: 'mystery', label: 'Mystery', icon: '🔍', color: 'border-purple-500 text-purple-400 bg-purple-500/10 shadow-purple-500/20' },
-  { id: 'adventure', label: 'Adventure', icon: '⚔️', color: 'border-orange-500 text-orange-400 bg-orange-500/10 shadow-orange-500/20' },
-  { id: 'romance', label: 'Romance', icon: '❤️', color: 'border-pink-500 text-pink-400 bg-pink-500/10 shadow-pink-500/20' },
-  { id: 'gothic', label: 'Gothic', icon: '🏰', color: 'border-slate-500 text-slate-400 bg-slate-500/10 shadow-slate-500/20' },
-  { id: 'cyberpunk', label: 'Cyberpunk', icon: '🤖', color: 'border-cyan-500 text-cyan-400 bg-cyan-500/10 shadow-cyan-500/20' },
-  { id: 'whimsical', label: 'Whimsical', icon: '✨', color: 'border-amber-500 text-amber-400 bg-amber-500/10 shadow-amber-500/20' },
-  { id: 'sci-fi', label: 'Sci-Fi', icon: '🚀', color: 'border-indigo-500 text-indigo-400 bg-indigo-500/10 shadow-indigo-500/20' },
-  { id: 'horror', label: 'Horror', icon: '👻', color: 'border-red-600 text-red-500 bg-red-600/10 shadow-red-600/20' },
+  { id: 'mystery', label: 'Mystery', icon: '🔍', authors: ['Arthur Conan Doyle', 'Agatha Christie'], color: 'border-purple-500 text-purple-400 bg-purple-500/10 shadow-purple-500/20' },
+  { id: 'adventure', label: 'Adventure', icon: '⚔️', authors: ['Robert Louis Stevenson', 'J.R.R. Tolkien'], color: 'border-orange-500 text-orange-400 bg-orange-500/10 shadow-orange-500/20' },
+  { id: 'romance', label: 'Romance', icon: '❤️', authors: ['Jane Austen', 'Charlotte Brontë'], color: 'border-pink-500 text-pink-400 bg-pink-500/10 shadow-pink-500/20' },
+  { id: 'gothic', label: 'Gothic', icon: '🏰', authors: ['Edgar Allan Poe', 'Mary Shelley'], color: 'border-slate-500 text-slate-400 bg-slate-500/10 shadow-slate-500/20' },
+  { id: 'cyberpunk', label: 'Cyberpunk', icon: '🤖', authors: ['William Gibson', 'Philip K. Dick'], color: 'border-cyan-500 text-cyan-400 bg-cyan-500/10 shadow-cyan-500/20' },
+  { id: 'whimsical', label: 'Whimsical', icon: '✨', authors: ['Lewis Carroll', 'Roald Dahl'], color: 'border-amber-500 text-amber-400 bg-amber-500/10 shadow-amber-500/20' },
+  { id: 'sci-fi', label: 'Sci-Fi', icon: '🚀', authors: ['Isaac Asimov', 'H.G. Wells'], color: 'border-indigo-500 text-indigo-400 bg-indigo-500/10 shadow-indigo-500/20' },
+  { id: 'horror', label: 'Horror', icon: '👻', authors: ['H.P. Lovecraft', 'Bram Stoker'], color: 'border-red-600 text-red-500 bg-red-600/10 shadow-red-600/20' },
 ];
 
 const VISUAL_STYLES = [
   { id: 'original', label: "Maintain Original", icon: '🖼️', prompt: "Maintain the exact same art style, lighting, and medium as the reference image." },
+  { id: 'cinematic', label: 'Cinematic', icon: '🎬', prompt: "Render with a high-budget cinematic look, featuring anamorphic lens flares, realistic depth of field, and dramatic colour grading." },
+  { id: 'anime', label: 'Anime', icon: '⛩️', prompt: "Render in a modern high-definition anime style, with vibrant colours, clean linework, and expressive character designs." },
   { id: 'oil-painting', label: 'Oil Painting', icon: '🎨', prompt: "Render in the style of a classical oil painting with thick brushstrokes and rich, canvas textures." },
   { id: 'sketch', label: 'Pencil Sketch', icon: '✏️', prompt: "Render as a detailed graphite pencil sketch on textured paper." },
   { id: 'ghibli', label: 'Studio Ghibli', icon: '☁️', prompt: "Render in a whimsical hand-painted anime style similar to Studio Ghibli, with soft lighting and vibrant colours." },
@@ -34,20 +36,22 @@ const VISUAL_STYLES = [
   { id: 'paper-cutout', label: 'Paper Cutout', icon: '✂️', prompt: "Render as a layered paper cutout diorama, with distinct shadows between physical layers and a handcrafted craft feel." },
   { id: 'victorian-etching', label: 'Victorian Etching', icon: '🖋️', prompt: "Detailed cross-hatched Victorian book illustration style with fine lines and aged paper texture." },
   { id: 'claymation', label: 'Claymation', icon: '🧱', prompt: "Hand-sculpted clay figures with visible fingerprints, tactile textures, and stop-motion charm." },
-  { id: 'stained-glass', label: 'Stained Glass', icon: '⛪', prompt: "Vibrant panels of colored glass separated by thick lead lines with light passing through." },
-  { id: 'bauhaus', label: 'Bauhaus', icon: '📐', prompt: "Geometric shapes, primary colors, minimalist balanced composition, and functional aesthetic." },
+  { id: 'stained-glass', label: 'Stained Glass', icon: '⛪', prompt: "Vibrant panels of coloured glass separated by thick lead lines with light passing through." },
+  { id: 'bauhaus', label: 'Bauhaus', icon: '📐', prompt: "Geometric shapes, primary colours, minimalist balanced composition, and functional aesthetic." },
   { id: 'comic-ink', label: 'Comic Ink', icon: '🖋️', prompt: "Thick, expressive black ink lines with halftone dots and hatching, typical of golden age comics." },
-  { id: 'tarot-card', label: 'Tarot Card', icon: '🃏', prompt: "Flat colors, ornate golden borders, and highly symbolic, mystical imagery characteristic of Rider-Waite tarot." },
+  { id: 'tarot-card', label: 'Tarot Card', icon: '🃏', prompt: "Flat colours, ornate golden borders, and highly symbolic, mystical imagery characteristic of Rider-Waite tarot." },
   { id: 'bioluminescent', label: 'Bioluminescent', icon: '💡', prompt: "Glowing organisms, ethereal cool-toned neon lights, and deep-sea dark contrasts." },
   { id: 'glitch-art', label: 'Glitch Art', icon: '📺', prompt: "Digital artifacts, chromatic aberration, scanlines, and aesthetic data corruption." },
 ];
+
+const NARRATOR_VOICES = ['Puck', 'Charon', 'Kore', 'Fenrir', 'Zephyr'];
 
 export default function App() {
   const [showSplash, setShowSplash] = useState<boolean>(true);
   const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
   const [setupStep, setSetupStep] = useState(1);
   const [initialImage, setInitialImage] = useState<string | null>(null);
-  const [storyTitle, setStoryTitle] = useState<string>('Graphic Novel Creator');
+  const [storyTitle, setStoryTitle] = useState<string>('Graphic Novel Studio');
   const [storyParts, setStoryParts] = useState<StoryPart[]>([]);
   
   const [selectedTones, setSelectedTones] = useState<string[]>([TONES[0].id]);
@@ -58,12 +62,16 @@ export default function App() {
   const [hasApiKey, setHasApiKey] = useState<boolean>(true);
   const [narratingIndex, setNarratingIndex] = useState<number | null>(null);
   const [isNarrationLoading, setIsNarrationLoading] = useState(false);
+  const [sessionVoice, setSessionVoice] = useState<string>(NARRATOR_VOICES[0]);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const randomVoice = NARRATOR_VOICES[Math.floor(Math.random() * NARRATOR_VOICES.length)];
+    setSessionVoice(randomVoice);
+
     const checkKey = async () => {
       if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
         const selected = await window.aistudio.hasSelectedApiKey();
@@ -108,15 +116,22 @@ export default function App() {
     }
   };
 
+  const getAuthors = () => {
+    const chosenTones = TONES.filter(t => selectedTones.includes(t.id));
+    const authors = chosenTones.map(t => t.authors[0]);
+    return Array.from(new Set(authors));
+  };
+
   const processInitialScene = async () => {
     if (!initialImage) return;
     try {
       setStatus(AppStatus.ANALYSING);
       
       const toneLabels = TONES.filter(t => selectedTones.includes(t.id)).map(t => t.label);
+      const authors = getAuthors();
       const stylePrompts = VISUAL_STYLES.filter(s => selectedStyles.includes(s.id)).map(s => s.prompt);
 
-      const result = await analyseImageAndWriteStory(initialImage, toneLabels, narrativeHint);
+      const result = await analyseImageAndWriteStory(initialImage, toneLabels, authors, narrativeHint);
       setStoryTitle(result.title);
       
       let finalInitialImage = initialImage;
@@ -147,10 +162,11 @@ export default function App() {
       const referenceImage = lastPart.imageUrl || initialImage;
       
       const toneLabels = TONES.filter(t => selectedTones.includes(t.id)).map(t => t.label);
+      const authors = getAuthors();
       const stylePrompts = VISUAL_STYLES.filter(s => selectedStyles.includes(s.id)).map(s => s.prompt);
       const fullText = storyParts.map(p => p.text).join("\n\n");
       
-      const { nextPart, visualPrompt } = await extendStory(initialImage, fullText, toneLabels);
+      const { nextPart, visualPrompt } = await extendStory(initialImage, fullText, toneLabels, authors);
       const newImageUrl = await generateStoryImage(referenceImage, visualPrompt, stylePrompts);
       
       setStoryParts(prev => [...prev, { text: nextPart, imageUrl: newImageUrl || referenceImage }]);
@@ -236,7 +252,7 @@ export default function App() {
     setIsNarrationLoading(true);
 
     try {
-      const base64Audio = await generateNarration(part.text);
+      const base64Audio = await generateNarration(part.text, sessionVoice);
       if (base64Audio) {
         if (!audioContextRef.current) {
           audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
@@ -268,11 +284,14 @@ export default function App() {
     setStatus(AppStatus.IDLE);
     setSetupStep(1);
     setInitialImage(null);
-    setStoryTitle('Graphic Novel Creator');
+    setStoryTitle('Graphic Novel Studio');
     setStoryParts([]);
     setNarrativeHint('');
     setSelectedTones([TONES[0].id]);
     setSelectedStyles([VISUAL_STYLES[0].id]);
+    
+    const randomVoice = NARRATOR_VOICES[Math.floor(Math.random() * NARRATOR_VOICES.length)];
+    setSessionVoice(randomVoice);
   };
 
   if (!hasApiKey) {
@@ -295,8 +314,8 @@ export default function App() {
           <div className="absolute top-1/2 -right-24 w-80 h-80 bg-blue-600 rounded-full blur-[100px]"></div>
         </div>
         <div className="max-w-3xl space-y-10 z-10 animate-in fade-in zoom-in-95 duration-1000">
-          <h1 className="text-6xl md:text-8xl font-black serif bg-gradient-to-br from-amber-100 via-amber-400 to-amber-700 bg-clip-text text-transparent uppercase tracking-tighter">Graphic Novel Creator</h1>
-          <p className="text-xl text-slate-300 font-light max-w-2xl mx-auto">Transform visual seeds into immersive, multi-style narratives with AI-powered prose and atmospheric visualization.</p>
+          <h1 className="text-6xl md:text-8xl font-black serif bg-gradient-to-br from-amber-100 via-amber-400 to-amber-700 bg-clip-text text-transparent uppercase tracking-tighter">Graphic Novel Studio</h1>
+          <p className="text-xl text-slate-300 font-light max-w-2xl mx-auto">Transform visual seeds into immersive, multi-style narratives with AI-powered prose and atmospheric visualisation.</p>
           <button onClick={() => setShowSplash(false)} className="px-12 py-5 bg-amber-500 text-slate-950 font-black rounded-[2rem] text-xl transition-all shadow-[0_0_50px_-10px_rgba(245,158,11,0.6)] hover:-translate-y-1 active:scale-95">Begin Your Journey</button>
         </div>
       </div>
@@ -312,12 +331,17 @@ export default function App() {
       )}
 
       <main className="max-w-7xl mx-auto p-6 md:p-12 space-y-12">
-        <header className="flex items-center justify-between">
-          <div className="cursor-pointer" onClick={resetDraft}>
-            <h1 className="text-4xl font-bold serif bg-gradient-to-r from-amber-200 to-amber-500 bg-clip-text text-transparent uppercase tracking-wider">{storyTitle}</h1>
+        <header className="flex flex-col items-center justify-center gap-4">
+          <div className="cursor-pointer text-center" onClick={resetDraft}>
+            <h1 className="text-4xl md:text-5xl font-bold serif bg-gradient-to-r from-amber-200 to-amber-500 bg-clip-text text-transparent uppercase tracking-wider">{storyTitle}</h1>
           </div>
           {status !== AppStatus.IDLE && (
-            <button onClick={resetDraft} className="px-6 py-2 rounded-full border border-slate-700 text-sm hover:bg-slate-800">New Draft</button>
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-amber-500 text-[10px] font-bold uppercase tracking-widest opacity-80 text-center">
+                Inspired by the works of {getAuthors().join(', ')}
+              </p>
+              <button onClick={resetDraft} className="px-6 py-2 rounded-full border border-slate-700 text-sm hover:bg-slate-800 transition-colours">New Draft</button>
+            </div>
           )}
         </header>
 
@@ -325,13 +349,14 @@ export default function App() {
           <div className="max-w-5xl mx-auto py-12 space-y-12 animate-in fade-in zoom-in-95 duration-500">
             {setupStep === 1 && (
               <div className="space-y-6">
-                <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500 text-center">Step 1: Blend Narrative Tones (Multi-select)</h2>
+                <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500 text-center">Step 1: Blend Narrative Tones & Authors</h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {TONES.map((tone) => (
                     <button key={tone.id} onClick={() => toggleSelection(tone.id, selectedTones, setSelectedTones)} 
                       className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${selectedTones.includes(tone.id) ? `${tone.color} shadow-lg scale-[1.05]` : 'border-slate-800 bg-slate-900/50 grayscale hover:grayscale-0'}`}>
                       <span className="text-2xl">{tone.icon}</span>
-                      <span className="font-medium">{tone.label}</span>
+                      <span className="font-medium text-sm md:text-base">{tone.label}</span>
+                      <div className="text-[10px] opacity-60 text-center">Inspired by {tone.authors[0]}</div>
                     </button>
                   ))}
                 </div>
@@ -411,7 +436,7 @@ export default function App() {
             {status === AppStatus.ANALYSING && storyParts.length === 0 ? (
               <div className="flex flex-col items-center py-20 space-y-10">
                 <div className="w-16 h-16 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-amber-400 font-bold tracking-[0.3em] uppercase">Synthesizing Narrative...</p>
+                <p className="text-amber-400 font-bold tracking-[0.3em] uppercase">Synthesising Narrative...</p>
               </div>
             ) : (
               <div className="space-y-32 pb-24">
@@ -448,7 +473,7 @@ export default function App() {
                         Export PDF
                       </button>
                     </div>
-                    <p className="text-xs text-slate-500 mt-4">Save your journey as a high-quality graphic novel document</p>
+                    <p className="text-xs text-slate-500 mt-4 text-center">Save your journey as a high-quality graphic novel document</p>
                   </div>
                 )}
               </div>

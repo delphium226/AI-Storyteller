@@ -1,27 +1,33 @@
+
 import { GoogleGenAI, Modality, Type } from "@google/genai";
 
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
-export const analyseImageAndWriteStory = async (base64Image: string, tones: string[], hint?: string) => {
+export const analyseImageAndWriteStory = async (base64Image: string, tones: string[], authors: string[], hint?: string) => {
   const ai = getAI();
   const imageData = base64Image.split(',')[1];
   
   const toneString = tones.join(', ');
+  const authorString = authors.join(', ');
   const hintSection = hint ? `\nUser narrative direction: "${hint}".` : "";
   
   const prompt = `Analyse this image in detail and write a story opening.
   1. Title: Compelling, atmospheric (max 5 words).
   2. Story: Opening paragraph (60-80 words).
   3. Visual Reference: A detailed DYNAMIC storyboard prompt for the next scene. 
-     Include: 
-     - A specific cinematic camera angle (e.g., Low Angle, Wide Shot, Dutch Angle).
-     - Character's new dynamic pose or action.
-     - Lighting and environmental shifts.
+
+  LITERARY STYLE MANDATE: Write in a seamless blend of the writing styles of: ${authorString}. 
+  Maintain the prose, vocabulary, and sentence structures characteristic of these authors.
   
-  MANDATORY TONE BLEND: Weave these atmospheric tones together seamlessly: ${toneString}.
+  MANDATORY TONE BLEND: Weave these atmospheric tones together: ${toneString}.
+  
+  INVENTIVE NAMING: If introducing characters or locations, generate highly unique, obscure, and randomised names. 
+  Avoid common or cliché names (e.g. DO NOT use 'Silas', 'Elena', 'Eldoria', 'Aria'). 
+  Draw from rare linguistic roots or abstract sounds to ensure names are fresh and surprising every time.
+  
   ${hintSection}
   
-  Return JSON with "story", "title", and "visualPrompt". Use British English.`;
+  Return JSON with "story", "title", and "visualPrompt". Use British English spelling throughout (e.g. 'colour', 'theatre', 'analyse').`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
@@ -48,20 +54,24 @@ export const analyseImageAndWriteStory = async (base64Image: string, tones: stri
   return JSON.parse(response.text || '{}');
 };
 
-export const extendStory = async (base64Image: string, fullStory: string, tones: string[]) => {
+export const extendStory = async (base64Image: string, fullStory: string, tones: string[], authors: string[]) => {
   const ai = getAI();
   const imageData = base64Image.split(',')[1];
   const toneString = tones.join(', ');
+  const authorString = authors.join(', ');
 
-  const prompt = `Continue this story. BLENDED TONE: ${toneString}.
-  Write 60-80 words advancing the plot or introducing a new location.
-  Provide a NEW cinematic visualPrompt that describes a sequence different from the previous one.
+  const prompt = `Continue this story. 
+  LITERARY STYLE CONSISTENCY: Strictly maintain the blended writing styles of ${authorString} established in the previous text.
+  BLENDED TONE: ${toneString}.
   
-  REQUIREMENT: Specify a NEW camera angle and a NEW physical action for the characters to ensure the visual sequence is dynamic and progressive.
+  NAMING CONTINUITY: You MUST use the exact same character and location names established in the previous parts of the story. Do not invent new names for existing entities.
+  
+  Write 60-80 words advancing the plot or introducing a new location.
+  Provide a NEW cinematic visualPrompt for the next panel.
   
   Current Context: "${fullStory}"
   
-  Return JSON with "nextPart" and "visualPrompt".`;
+  Return JSON with "nextPart" and "visualPrompt". Use British English spelling (e.g. 'colour', 'honour', 'programme').`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
@@ -104,8 +114,8 @@ DYNAMIC SCENE DESCRIPTION: ${visualPrompt}
 
 STRICT CONTINUITY & DYNAMIC SHIFT RULES:
 1. CHARACTER IDENTITY: Replicate character facial features, hair, and clothing EXACTLY from the REFERENCE IMAGE.
-2. POSE & PERSPECTIVE: DO NOT duplicate the pose or camera angle of the reference image. The character must be in a DIFFERENT pose and the camera must be at a DIFFERENT angle as specified in the DYNAMIC SCENE DESCRIPTION.
-3. COMPOSITION: Change the layout of the scene to create a sense of movement and progression.
+2. POSE & PERSPECTIVE: DO NOT duplicate the pose or camera angle of the reference image. The character must be in a DIFFERENT pose and the camera must be at a DIFFERENT angle.
+3. COMPOSITION: Change the layout of the scene to create a sense of movement.
 4. 16:9 aspect ratio.` }
         ]
       }],
@@ -126,16 +136,16 @@ STRICT CONTINUITY & DYNAMIC SHIFT RULES:
   return null;
 };
 
-export const generateNarration = async (text: string) => {
+export const generateNarration = async (text: string, voiceName: string) => {
   const ai = getAI();
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash-preview-tts",
-    contents: [{ parts: [{ text: `Read with a cinematic, atmospheric deep tone: ${text}` }] }],
+    contents: [{ parts: [{ text: `Read with a cinematic, atmospheric tone: ${text}` }] }],
     config: {
       responseModalities: [Modality.AUDIO],
       speechConfig: {
         voiceConfig: {
-          prebuiltVoiceConfig: { voiceName: 'Charon' },
+          prebuiltVoiceConfig: { voiceName: voiceName },
         },
       },
     },
